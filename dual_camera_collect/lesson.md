@@ -588,3 +588,57 @@ ROS 2 的回调函数有几个关键限制：
 4. **是否具有系统思维**——看到一个模块能想到对整体的影响
 
 这段经历的核心价值不在于实现了一个数据采集系统，而在于**从问题发现到问题解决到经验总结的完整闭环**。任何工程经验都是如此——没有捷径，只有坑踩多了才知道怎么绕。
+
+---
+
+## 十、相关文档索引
+
+本项目积累了大量文档，以下是索引：
+
+### 核心文档
+
+| 文档 | 内容 |
+|------|------|
+| `lesson.md` | 本文档 — 项目经验、面试题、与课内知识联系 |
+| `DESIGN.md` | 系统架构设计 |
+| `USAGE.md` | 详细使用说明和命令行参数 |
+| `architecture_analysis.md` | 问题分析文档（发现录制卡住的分析过程） |
+| `hardware_setup.md` | 硬件设施、计算平台、网络架构 |
+| `debug_log.md` | Bug 记录、调试方法论、检查清单 |
+
+### 相关项目文档
+
+| 文档 | 内容 |
+|------|------|
+| `franka-gello/lesson.md` | franka-gello 项目经验 |
+| `tavp_data_collect/lesson.md` | 轨迹示教重放经验 |
+| `analysis.md` | 三个项目的横向对比分析 |
+| `franka-data-collect/README.md` | 项目总览和文档索引 |
+
+### 快速启动
+
+```bash
+# 查看硬件环境
+cat dual_camera_collect/hardware_setup.md
+
+# 查看启动命令
+cat dual_camera_collect/USAGE.md
+
+# 查看架构设计
+cat dual_camera_collect/DESIGN.md
+
+# 查看 Bug 和修复记录
+cat dual_camera_collect/debug_log.md
+```
+
+### 代码阅读顺序建议
+
+如果想理解整个项目，推荐阅读顺序：
+
+1. `hardware_setup.md` — 理解硬件组成
+2. `DESIGN.md` — 理解系统架构
+3. `dual_camera_collector.py` — 主程序入口
+4. `camera_capture_thread.py` — 相机采集线程
+5. `lerobot_writer.py` — 数据写入
+6. `architecture_analysis.md` — 理解遇到的问题和解决方案
+7. `lesson.md` — 从经验上升到理论
