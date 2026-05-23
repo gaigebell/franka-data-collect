@@ -1,0 +1,61 @@
+# Franka ROS2 observation.position 不更新问题排查
+
+## 问题描述
+
+使用 `dual_camera_collector.py` 采集数据时，录制的 `data.json` 中 position 数据始终不变，但 `ros2 topic echo` 显示 `/franka_robot_state_broadcaster/current_pose` 实际有变化。
+
+## 排查过程
+
+### 1. 检查 broadcaster 状态
+```bash
+ros2 control list_controllers
+```
+结果：所有 controllers 都是 active 状态，正常。
+
+### 2. 检查 topic 是否有数据
+```bash
+ros2 topic echo /franka_robot_state_broadcaster/current_pose
+ros2 topic echo /gello/joint_states
+```
+结果：两个 topic 数据都在变化，说明数据流正常。
+
+### 3. 排查订阅端
+
+#### 第一次修改：移除 ApproximateTimeSynchronizer
+- **发现**：录制时 `[SYNC CALLBACK]` 打印消失，说明 `ApproximateTimeSynchronizer` 同步失败
+- **原因**：三个 topic (`gello/joint_states`, `/franka_robot_state_broadcaster/current_pose`, `/franka_gripper/joint_states`) 时间戳差异超过 `slop=0.1s`，导致同步器不触发回调
+- **修改**：将同步订阅改为直接订阅（各自独立回调）
+
+#### 第二次修改：改为直接订阅
+```python
+# 原来：使用 message_filters.ApproximateTimeSynchronizer
+# 修改后：直接 create_subscription 各自独立回调
+
+self.sub_gello_joints = self.create_subscription(JointState, 'gello/joint_states', self._on_gello_joints, qos_profile)
+self.sub_pose = self.create_subscription(PoseStamped, '/franka_robot_state_broadcaster/current_pose', self._on_pose, qos_profile)
+self.sub_gripper = self.create_subscription(JointState, '/franka_gripper/joint_states', self._on_gripper, qos_profile)
+```
+
+### 4. 仍然无数据变化
+
+- `ros2 topic echo` 持续监控：pose xyz 数值随机械臂运动而变化
+- 采集程序 `_on_pose` 回调：录制时有打印，数值确实在更新
+- 但 `data.json` 中 position 始终不变
+
+## 当前状态
+
+代码已修改为直接订阅（移除同步器），录制时回调确实触发，数据也看起来在更新，但最终保存的 data.json 中 position 数值没有变化。
+
+## 后续排查方向
+
+1. 检查 `_get_robot_state()` 逻辑是否正确读取 `self.current_pose`
+2. 检查 `lerobot_writer.py` 的 `_save_state_action` 是否正确解析数据
+3. 确认 `data.json` 是否是最新录制的文件（可能被旧文件覆盖）
+4. 在 `_get_robot_state()` 中添加 print，确认读取到的数值是否正确
+
+## 关键代码位置
+
+- 订阅初始化：`dual_camera_collector.py` 第 100-123 行
+- 回调函数：`_on_gello_joints`(135), `_on_pose`(145), `_on_gripper`(148)
+- 状态读取：`_get_robot_state()` 第 164-212 行
+- 数据写入：`lerobot_writer.py` `_save_state_action()` 第 141-176 行
